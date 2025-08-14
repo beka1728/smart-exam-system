@@ -1,0 +1,467 @@
+import React, { useState, useEffect } from 'react';
+import { Users, Brain, FileText, CheckCircle, BarChart3, Settings, Lock } from 'lucide-react';
+
+const LabQuestionGenerator = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [students, setStudents] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [template, setTemplate] = useState('');
+  const [subject, setSubject] = useState('');
+  const [difficulty, setDifficulty] = useState('medium');
+  const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Sample question templates for different subjects
+  const questionTemplates = {
+    physics: [
+      "Calculate the {measurement} of a {object} with {property1} = {value1} {unit1} and {property2} = {value2} {unit2}",
+      "A {system} has {component1} = {value1} {unit1} and {component2} = {value2} {unit2}. Find the {target_measurement}",
+      "In an experiment involving {phenomenon}, if {variable1} = {value1} and {variable2} = {value2}, determine the {result}"
+    ],
+    chemistry: [
+      "Calculate the {calculation_type} of {compound} when {condition1} = {value1} {unit1} and {condition2} = {value2} {unit2}",
+      "In a reaction between {reactant1} and {reactant2}, if {parameter} = {value} {unit}, find the {product_property}",
+      "A solution contains {substance} with {property} = {value} {unit}. Calculate the {target_value}"
+    ],
+    mathematics: [
+      "Solve for {variable} when {equation_part1} = {value1} and {equation_part2} = {value2}",
+      "A {geometric_shape} has {dimension1} = {value1} {unit} and {dimension2} = {value2} {unit}. Find the {calculation_target}",
+      "Given the function f(x) = {function_type} where {parameter} = {value}, calculate {target}"
+    ],
+    programming: [
+      "Write a {language} function that {task} with input parameters {param_type} and returns {return_type}",
+      "Debug the following {language} code that implements {algorithm} with {constraint} and {requirement}",
+      "Design a {data_structure} that supports {operation1} and {operation2} with time complexity {complexity}"
+    ]
+  };
+
+  // Variable pools for question generation
+  const variablePools = {
+    physics: {
+      measurement: ['force', 'velocity', 'acceleration', 'energy', 'momentum', 'power'],
+      object: ['pendulum', 'projectile', 'spring', 'circuit', 'wave', 'particle'],
+      property1: ['mass', 'length', 'time', 'voltage', 'current', 'frequency'],
+      property2: ['height', 'angle', 'resistance', 'capacitance', 'wavelength', 'amplitude'],
+      value1: [10, 15, 20, 25, 30, 35, 40, 45, 50],
+      value2: [2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0],
+      unit1: ['kg', 'm', 's', 'V', 'A', 'Hz'],
+      unit2: ['m', 'degrees', 'Ω', 'F', 'm', 'cm']
+    },
+    chemistry: {
+      calculation_type: ['molarity', 'molality', 'pH', 'concentration', 'yield', 'equilibrium constant'],
+      compound: ['NaCl', 'H2SO4', 'CaCO3', 'CH4', 'C6H12O6', 'NH3'],
+      condition1: ['temperature', 'pressure', 'volume', 'amount', 'concentration'],
+      condition2: ['time', 'catalyst amount', 'surface area', 'pH', 'ionic strength'],
+      value1: [25, 30, 35, 40, 45, 50, 55, 60],
+      value2: [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    },
+    mathematics: {
+      variable: ['x', 'y', 'z', 't', 'n', 'θ'],
+      geometric_shape: ['triangle', 'circle', 'rectangle', 'parallelogram', 'trapezoid', 'ellipse'],
+      dimension1: ['length', 'width', 'radius', 'height', 'base', 'side'],
+      dimension2: ['width', 'height', 'diameter', 'angle', 'altitude', 'diagonal'],
+      value1: [5, 8, 10, 12, 15, 18, 20, 24],
+      value2: [3, 4, 6, 7, 9, 11, 14, 16]
+    }
+  };
+
+  // Simulate AI question generation
+  const generateUniqueQuestions = async () => {
+    setIsGenerating(true);
+    const studentList = students.length > 0 ? students : generateSampleStudents();
+    const templates = questionTemplates[subject] || questionTemplates.physics;
+    const variables = variablePools[subject] || variablePools.physics;
+    
+    const generated = [];
+    const usedCombinations = new Set();
+
+    for (let i = 0; i < studentList.length; i++) {
+      let attempts = 0;
+      let uniqueQuestion = null;
+      
+      while (!uniqueQuestion && attempts < 50) {
+        const template = templates[Math.floor(Math.random() * templates.length)];
+        const questionData = generateQuestionFromTemplate(template, variables);
+        const combination = JSON.stringify(questionData);
+        
+        if (!usedCombinations.has(combination)) {
+          usedCombinations.add(combination);
+          uniqueQuestion = {
+            studentId: studentList[i].id,
+            studentName: studentList[i].name,
+            questionText: questionData.text,
+            parameters: questionData.parameters,
+            expectedAnswer: questionData.answer,
+            difficulty: calculateDifficulty(questionData),
+            uniqueId: `Q${Date.now()}_${i}`
+          };
+        }
+        attempts++;
+      }
+      
+      if (uniqueQuestion) {
+        generated.push(uniqueQuestion);
+      }
+    }
+
+    // Simulate AI processing delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setGeneratedQuestions(generated);
+    setIsGenerating(false);
+  };
+
+  const generateQuestionFromTemplate = (template, variables) => {
+    let questionText = template;
+    const parameters = {};
+    let answer = "Calculated based on parameters";
+
+    // Replace placeholders with random values
+    const placeholders = template.match(/\{([^}]+)\}/g) || [];
+    placeholders.forEach(placeholder => {
+      const key = placeholder.slice(1, -1);
+      if (variables[key]) {
+        const value = variables[key][Math.floor(Math.random() * variables[key].length)];
+        parameters[key] = value;
+        questionText = questionText.replace(placeholder, value);
+      }
+    });
+
+    return { text: questionText, parameters, answer };
+  };
+
+  const calculateDifficulty = (questionData) => {
+    // Simple difficulty calculation based on number of parameters
+    const paramCount = Object.keys(questionData.parameters).length;
+    if (paramCount <= 3) return 'Easy';
+    if (paramCount <= 5) return 'Medium';
+    return 'Hard';
+  };
+
+  const generateSampleStudents = () => {
+    const sampleNames = ['Alice Johnson', 'Bob Smith', 'Carol Davis', 'David Wilson', 'Eva Brown', 'Frank Miller', 'Grace Lee', 'Henry Garcia'];
+    return sampleNames.map((name, index) => ({
+      id: `STU${String(index + 1).padStart(3, '0')}`,
+      name,
+      email: `${name.toLowerCase().replace(' ', '.')}@university.edu`
+    }));
+  };
+
+  useEffect(() => {
+    if (students.length === 0) {
+      setStudents(generateSampleStudents());
+    }
+  }, []);
+
+  const renderDashboard = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-blue-50 p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-600 font-medium">Total Students</p>
+              <p className="text-2xl font-bold text-blue-800">{students.length}</p>
+            </div>
+            <Users className="text-blue-500" size={24} />
+          </div>
+        </div>
+        <div className="bg-green-50 p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-600 font-medium">Questions Generated</p>
+              <p className="text-2xl font-bold text-green-800">{generatedQuestions.length}</p>
+            </div>
+            <FileText className="text-green-500" size={24} />
+          </div>
+        </div>
+        <div className="bg-purple-50 p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-600 font-medium">AI Accuracy</p>
+              <p className="text-2xl font-bold text-purple-800">98.5%</p>
+            </div>
+            <Brain className="text-purple-500" size={24} />
+          </div>
+        </div>
+        <div className="bg-orange-50 p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-orange-600 font-medium">Uniqueness Rate</p>
+              <p className="text-2xl font-bold text-orange-800">100%</p>
+            </div>
+            <CheckCircle className="text-orange-500" size={24} />
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-xl font-semibold mb-4">System Overview</h3>
+        <p className="text-gray-600 mb-4">
+          The AI-powered lab question generator ensures each student receives a unique but equivalent question, 
+          maintaining fairness while preventing copying. The system uses advanced NLP and machine learning 
+          algorithms to generate variations while preserving difficulty levels.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="border-l-4 border-blue-500 pl-4">
+            <h4 className="font-medium text-blue-800">Question Generation AI</h4>
+            <p className="text-sm text-gray-600">Uses template-based generation with parameter variation</p>
+          </div>
+          <div className="border-l-4 border-green-500 pl-4">
+            <h4 className="font-medium text-green-800">Difficulty Assessment</h4>
+            <p className="text-sm text-gray-600">Automated difficulty scoring ensures fairness</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderQuestionGenerator = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-xl font-semibold mb-4">Generate Lab Questions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Subject</label>
+            <select 
+              value={subject} 
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Subject</option>
+              <option value="physics">Physics</option>
+              <option value="chemistry">Chemistry</option>
+              <option value="mathematics">Mathematics</option>
+              <option value="programming">Programming</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Difficulty Level</label>
+            <select 
+              value={difficulty} 
+              onChange={(e) => setDifficulty(e.target.value)}
+              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+        </div>
+        
+        <button 
+          onClick={generateUniqueQuestions}
+          disabled={isGenerating || !subject}
+          className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <Brain size={20} />
+          {isGenerating ? 'Generating Questions...' : 'Generate Unique Questions'}
+        </button>
+      </div>
+
+      {isGenerating && (
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <p className="text-blue-800">AI is generating unique questions for each student...</p>
+          </div>
+        </div>
+      )}
+
+      {generatedQuestions.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h4 className="text-lg font-semibold mb-4">Generated Questions ({generatedQuestions.length})</h4>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {generatedQuestions.map((q, index) => (
+              <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
+                <div className="flex justify-between items-start mb-2">
+                  <strong className="text-sm font-medium">{q.studentName}</strong>
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    q.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                    q.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {q.difficulty}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700">{q.questionText}</p>
+                <p className="text-xs text-gray-500 mt-1">ID: {q.uniqueId}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStudents = () => (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h3 className="text-xl font-semibold mb-4">Student Management</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-300 p-3 text-left">Student ID</th>
+              <th className="border border-gray-300 p-3 text-left">Name</th>
+              <th className="border border-gray-300 p-3 text-left">Email</th>
+              <th className="border border-gray-300 p-3 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((student) => (
+              <tr key={student.id} className="hover:bg-gray-50">
+                <td className="border border-gray-300 p-3">{student.id}</td>
+                <td className="border border-gray-300 p-3">{student.name}</td>
+                <td className="border border-gray-300 p-3">{student.email}</td>
+                <td className="border border-gray-300 p-3">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Active</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderAnalytics = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-xl font-semibold mb-4">Question Generation Analytics</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-medium mb-3">Difficulty Distribution</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span>Easy</span>
+                <div className="flex-1 mx-3 bg-gray-200 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{width: '30%'}}></div>
+                </div>
+                <span className="text-sm text-gray-600">30%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Medium</span>
+                <div className="flex-1 mx-3 bg-gray-200 rounded-full h-2">
+                  <div className="bg-yellow-500 h-2 rounded-full" style={{width: '50%'}}></div>
+                </div>
+                <span className="text-sm text-gray-600">50%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Hard</span>
+                <div className="flex-1 mx-3 bg-gray-200 rounded-full h-2">
+                  <div className="bg-red-500 h-2 rounded-full" style={{width: '20%'}}></div>
+                </div>
+                <span className="text-sm text-gray-600">20%</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-medium mb-3">System Performance</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Question Uniqueness:</span>
+                <span className="font-semibold text-green-600">100%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Generation Speed:</span>
+                <span className="font-semibold">0.25s per question</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">AI Accuracy:</span>
+                <span className="font-semibold text-blue-600">98.5%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h4 className="font-medium mb-3">Recent Activity</h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2 text-gray-600">
+            <CheckCircle size={16} className="text-green-500" />
+            <span>Generated 8 unique questions for Physics Lab 3</span>
+            <span className="text-xs text-gray-400">2 minutes ago</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Brain size={16} className="text-blue-500" />
+            <span>AI model updated with new question templates</span>
+            <span className="text-xs text-gray-400">1 hour ago</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Users size={16} className="text-purple-500" />
+            <span>Added 3 new students to Chemistry course</span>
+            <span className="text-xs text-gray-400">3 hours ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-3">
+              <Brain className="text-blue-600" size={32} />
+              <h1 className="text-2xl font-bold text-gray-900">AI Lab Question Generator</h1>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Lock size={16} />
+              <span>Secure • Role-based Access</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-64">
+            <nav className="bg-white rounded-lg shadow p-4">
+              <ul className="space-y-2">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                  { id: 'generator', label: 'Question Generator', icon: Brain },
+                  { id: 'students', label: 'Students', icon: Users },
+                  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                  { id: 'settings', label: 'Settings', icon: Settings }
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon size={20} />
+                        {item.label}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          </div>
+
+          <div className="flex-1">
+            {activeTab === 'dashboard' && renderDashboard()}
+            {activeTab === 'generator' && renderQuestionGenerator()}
+            {activeTab === 'students' && renderStudents()}
+            {activeTab === 'analytics' && renderAnalytics()}
+            {activeTab === 'settings' && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold mb-4">System Settings</h3>
+                <p className="text-gray-600">Configure AI parameters, question templates, and system preferences.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LabQuestionGenerator;
