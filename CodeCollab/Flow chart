@@ -1,0 +1,48 @@
+flowchart TD
+    A[Instructor Login] --> B[Course/Lab Selection]
+    B --> C[Question Template Creation]
+    C --> D[AI Question Generator Engine]
+    
+    D --> E[Template Analysis Module]
+    E --> F[Parameter Variation Engine]
+    F --> G[Difficulty Assessment AI]
+    G --> H[Uniqueness Validator]
+    
+    H --> I{All Students Covered?}
+    I -->|No| J[Generate Next Unique Question]
+    J --> F
+    I -->|Yes| K[Question Database]
+    
+    K --> L[Student Authentication]
+    L --> M[Assign Unique Question ID]
+    M --> N[Display Question to Student]
+    
+    N --> O[Student Submission]
+    O --> P[AI-Powered Auto Evaluation]
+    P --> Q[Rubric-Based Scoring]
+    Q --> R[Instructor Review Dashboard]
+    
+    R --> S[Final Grade Assignment]
+    S --> T[Analytics & Reports]
+    
+    subgraph "AI Components"
+        D
+        G
+        P
+        U[Natural Language Processing]
+        V[Machine Learning Models]
+        W[Question Similarity Detection]
+    end
+    
+    subgraph "Database Layer"
+        K
+        X[Student Records]
+        Y[Question Templates]
+        Z[Evaluation Rubrics]
+    end
+    
+    subgraph "Security & Access Control"
+        AA[Role-Based Authentication]
+        BB[Exam Integrity Monitoring]
+        CC[Anti-Plagiarism Detection]
+    end
