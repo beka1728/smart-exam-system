@@ -1,0 +1,81 @@
+AI-powered digital exam system (paperless)
+
+You’ll reuse most of the above and add delivery, security, and roles.
+
+A. Roles
+
+Admin: create exams, manage users.
+
+Instructor: create base questions, set difficulty mix, start/stop exam.
+
+Proctor: monitor sessions, pause/resume specific students.
+
+Student: take exam.
+
+B. What to draw (architecture)
+
+Client (responsive web) ↔️ API ↔️ DB
+Plus:
+
+Token service (JWT, 60-min expiry)
+
+Exam Delivery service (locks paper per student)
+
+Integrity features: device + IP capture, copy/print disable hint (front-end), time window, re-entry token, question shuffle
+
+AI modules:
+
+Question generation as above
+
+Summarizer for proctor view (flags suspicious patterns)
+
+Optional: short-answer scorer
+
+Flow
+Admin sets exam → Instructor defines difficulty mix (e.g., 40% easy, 40% medium, 20% hard) → On start, for each student: build a paper from base pool with AI variants → Deliver via link → Student submits → Auto-grade → Results → Export.
+
+C. Replit prototype checklist
+
+Add role to users; protect endpoints with Depends(auth)
+
+Endpoints
+
+POST /exam create
+
+POST /exam/{id}/start
+
+POST /exam/{id}/paper (student fetches, returns locked set of variants)
+
+POST /exam/{id}/submit
+
+GET /exam/{id}/results
+
+Multi-device compatibility
+
+Simple responsive HTML (Tailwind or plain CSS); test on phone + laptop
+
+Integrity
+
+Disable right-click + copy via JS (basic, yes it’s bypassable; note this in report)
+
+Time limit on server; server refuses late submissions
+
+Per-student seed; rejoin using same token if device changes
+
+Security basics (state clearly)
+
+Hash passwords (bcrypt)
+
+Store minimal PII
+
+Sign JWT with secret; rotate between exams
+
+D. “Role of AI” section (write this clearly)
+
+Generation: produce paraphrased but equivalent items from instructor-approved bases.
+
+Difficulty control: AI suggests Bloom level and reading level; instructor can override.
+
+Auto-grading: short answers scored by rubric + keyword expansion from AI; code via unit tests.
+
+Proctor aid: AI summaries of anomalies (rapid answer bursts, identical phrasing across students, etc.).
